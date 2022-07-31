@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"sync"
 )
@@ -26,49 +27,67 @@ func newServer(ip string, port int) *Server {
 }
 
 //listen BcChannel, and send to all agents once there is message on it
-func (server *Server) listenBcChannel() {
+func (this *Server) listenBcChannel() {
 	for {
-		msg := <-server.bcChannel
+		msg := <-this.bcChannel
 
-		server.mapLock.Lock()
-		for _, agent := range server.onlineMap {
+		this.mapLock.Lock()
+		for _, agent := range this.onlineMap {
 			agent.channel <- msg
 		}
-		server.mapLock.Unlock()
+		this.mapLock.Unlock()
 	}
 }
 
-func (server *Server) broadcast(agent *Agent, msg string) {
+func (this *Server) broadcast(agent *Agent, msg string) {
 	sendMsg := "[" + agent.userAddr + "]" + agent.userName + ": " + msg
-	server.bcChannel <- sendMsg
+	this.bcChannel <- sendMsg
 }
 
-func (server *Server) handler(conn net.Conn) {
-	//Handle
-	fmt.Println("new connection established")
-
+func (this *Server) handler(conn net.Conn) {
 	//add user - agent to map
 	agent := newAgent(conn)
-	server.mapLock.Lock()
-	server.onlineMap[agent.userName] = agent
-	server.mapLock.Unlock()
+	this.mapLock.Lock()
+	this.onlineMap[agent.userName] = agent
+	this.mapLock.Unlock()
 
 	//broadcast new user info
-	server.broadcast(agent, "online")
+	fmt.Println("[" + agent.userAddr + "]" + agent.userName + ": online")
+	this.broadcast(agent, "online")
+
+	// accept client's message
+	go func() {
+		buf := make([]byte, 4096)
+		for {
+			n, err := conn.Read(buf)
+			if n == 0 {
+				fmt.Println("[" + agent.userAddr + "]" + agent.userName + ": offline")
+				this.broadcast(agent, "offline")
+				return
+			}
+
+			if err != nil && err != io.EOF {
+				fmt.Println("conn.Read err: ", err)
+				return
+			}
+
+			this.broadcast(agent, string(buf[:n-1]))
+		}
+	}()
 
 	//block handler
-	select {}
+	//select {}
 }
 
-func (server *Server) start() {
+func (this *Server) start() {
 	//listen (close listener)
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", server.ip, server.port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", this.ip, this.port))
 	if err != nil {
 		fmt.Println("net.Listen error: ", err)
 	}
 	defer listener.Close()
 
-	go server.listenBcChannel()
+	go this.listenBcChannel()
 
 	for {
 		//accpet
@@ -78,7 +97,7 @@ func (server *Server) start() {
 			continue
 		}
 		//handler
-		go server.handler(conn)
+		go this.handler(conn)
 	}
 	//close
 

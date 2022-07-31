@@ -25,9 +25,9 @@ func newAgent(conn net.Conn) *Agent {
 	return agent
 }
 
-func (agent *Agent) ListenMessage() {
+func (this *Agent) ListenMessage() {
 	for {
-		msg := <-agent.channel
-		agent.conn.Write([]byte(msg + "\n"))
+		msg := <-this.channel
+		this.conn.Write([]byte(msg + "\n"))
 	}
 }
