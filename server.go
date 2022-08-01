@@ -26,7 +26,7 @@ func newServer(ip string, port int) *Server {
 	}
 }
 
-//listen BcChannel, and send to all agents once there is message on it
+//listen on BcChannel, and send to all agents once there is message on it
 func (this *Server) listenBcChannel() {
 	for {
 		msg := <-this.bcChannel
@@ -42,6 +42,25 @@ func (this *Server) listenBcChannel() {
 func (this *Server) broadcast(agent *Agent, msg string) {
 	sendMsg := "[" + agent.userAddr + "]" + agent.userName + ": " + msg
 	this.bcChannel <- sendMsg
+}
+
+func (this *Server) updateUserName(agent *Agent, newName string) {
+	this.mapLock.Lock()
+	_, ok := this.onlineMap[newName]
+	this.mapLock.Unlock()
+	if ok {
+		agent.sendMsg("The name is already used\n")
+	} else {
+		fmt.Println("[" + agent.userAddr + "]" + agent.userName + " updated user name to: " + newName)
+
+		this.mapLock.Lock()
+		delete(this.onlineMap, agent.userName)
+		this.onlineMap[newName] = agent
+		this.mapLock.Unlock()
+
+		agent.userName = newName
+		agent.sendMsg("user name updated to " + agent.userName + "\n")
+	}
 }
 
 func (this *Server) handler(conn net.Conn) {
