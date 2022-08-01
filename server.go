@@ -46,14 +46,9 @@ func (this *Server) broadcast(agent *Agent, msg string) {
 
 func (this *Server) handler(conn net.Conn) {
 	//add user - agent to map
-	agent := newAgent(conn)
-	this.mapLock.Lock()
-	this.onlineMap[agent.userName] = agent
-	this.mapLock.Unlock()
+	agent := newAgent(conn, this)
 
-	//broadcast new user info
-	fmt.Println("[" + agent.userAddr + "]" + agent.userName + ": online")
-	this.broadcast(agent, "online")
+	agent.online()
 
 	// accept client's message
 	go func() {
@@ -61,8 +56,7 @@ func (this *Server) handler(conn net.Conn) {
 		for {
 			n, err := conn.Read(buf)
 			if n == 0 {
-				fmt.Println("[" + agent.userAddr + "]" + agent.userName + ": offline")
-				this.broadcast(agent, "offline")
+				agent.offline()
 				return
 			}
 
@@ -71,7 +65,8 @@ func (this *Server) handler(conn net.Conn) {
 				return
 			}
 
-			this.broadcast(agent, string(buf[:n-1]))
+			msg := string(buf[:n-1])
+			agent.handleMessage(msg)
 		}
 	}()
 
