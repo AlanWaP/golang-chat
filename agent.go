@@ -67,6 +67,25 @@ func (this *Agent) handleMessage(msg string) {
 		this.server.updateUserName(this, newName)
 	} else if msg == "me" {
 		this.sendMsg("You are [" + this.userAddr + "]" + this.userName + "\n")
+	} else if len(msg) > 4 && msg[:3] == "to|" && len(strings.Split(msg, "|")) >= 3 {
+		remoteName := strings.Split(msg, "|")[1]
+		if remoteName == "" {
+			this.sendMsg("format incorrect. Should be to|<remoteName>|<message>\n")
+			return
+		}
+		this.server.mapLock.Lock()
+		remoteUser, ok := this.server.onlineMap[remoteName]
+		this.server.mapLock.Unlock()
+		if !ok {
+			this.sendMsg("Remote Name does not exist\n")
+			return
+		}
+		content := strings.Split(msg, "|")[2]
+		if content == "" {
+			this.sendMsg("Content is empty. Please resend\n")
+			return
+		}
+		remoteUser.sendMsg("[" + this.userAddr + "]" + this.userName + ": " + content + "\n")
 	} else {
 		this.server.broadcast(this, msg)
 	}

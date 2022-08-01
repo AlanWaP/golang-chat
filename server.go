@@ -101,9 +101,9 @@ func (this *Server) handler(conn net.Conn) {
 		case <-isLive:
 			//the current user is live
 		case <-time.After(time.Second * 20):
-			//time expired. kicked out user
+			//time expired. kick out user
 			agent.sendMsg("You are kicked. Press ENTER to exit\n")
-			agent.offline()
+			//agent.offline()
 			close(agent.channel)
 			conn.Close()
 			return
