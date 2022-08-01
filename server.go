@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -69,6 +70,8 @@ func (this *Server) handler(conn net.Conn) {
 
 	agent.online()
 
+	isLive := make(chan bool)
+
 	// accept client's message
 	go func() {
 		buf := make([]byte, 4096)
@@ -86,11 +89,26 @@ func (this *Server) handler(conn net.Conn) {
 
 			msg := string(buf[:n-1])
 			agent.handleMessage(msg)
+
+			//any message infers user is live
+			isLive <- true
 		}
 	}()
 
 	//block handler
-	//select {}
+	for {
+		select {
+		case <-isLive:
+			//the current user is live
+		case <-time.After(time.Second * 20):
+			//time expired. kicked out user
+			agent.sendMsg("You are kicked. Press ENTER to exit\n")
+			agent.offline()
+			close(agent.channel)
+			conn.Close()
+			return
+		}
+	}
 }
 
 func (this *Server) start() {

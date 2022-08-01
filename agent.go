@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 type Agent struct {
@@ -61,23 +62,9 @@ func (this *Agent) handleMessage(msg string) {
 		}
 		this.server.mapLock.Unlock()
 	} else if len(msg) > 7 && msg[:7] == "rename|" {
-		//newName := strings.Split(msg, "|")[1]
-		newName := msg[7:]
+		newName := strings.Split(msg, "|")[1]
+		//newName := msg[7:]
 		this.server.updateUserName(this, newName)
-		// this.server.mapLock.Lock()
-		// _, ok := this.server.onlineMap[newName]
-		// this.server.mapLock.Unlock()
-		// if ok {
-		// 	this.sendMsg("The name is already used\n")
-		// } else {
-		// 	this.server.mapLock.Lock()
-		// 	delete(this.server.onlineMap, this.userName)
-		// 	this.server.onlineMap[newName] = this
-		// 	this.server.mapLock.Unlock()
-
-		// 	this.userName = newName
-		// 	this.sendMsg("user name updated to " + this.userName + "\n")
-		// }
 	} else if msg == "me" {
 		this.sendMsg("You are [" + this.userAddr + "]" + this.userName + "\n")
 	} else {
