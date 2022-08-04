@@ -57,7 +57,7 @@ func (this *Agent) handleMessage(msg string) {
 	if msg == "who" {
 		this.server.mapLock.Lock()
 		for _, agent := range this.server.onlineMap {
-			onlineMsg := "[" + agent.userAddr + "]" + agent.userName + ": online\n"
+			onlineMsg := "[" + agent.userAddr + "]" + agent.userName + "\n"
 			this.sendMsg(onlineMsg)
 		}
 		this.server.mapLock.Unlock()
